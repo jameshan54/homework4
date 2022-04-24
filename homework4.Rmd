@@ -1,0 +1,23 @@
+---
+title: "homework4"
+author: "James(Changhwan) Han (3923257)"
+date: "4/23/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, warning = FALSE}
+library(tidymodels)
+library(tidyverse)
+library(rlang)
+library(knitr)
+```
+
+```{r}
+titanic <- read_csv("titanic.csv")
+head(titanic)
+```
+
