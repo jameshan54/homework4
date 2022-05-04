@@ -190,7 +190,7 @@ pre code {
 ## x dplyr::filter()  masks stats::filter()
 ## x dplyr::lag()     masks stats::lag()
 ## x recipes::step()  masks stats::step()
-## * Learn how to get started at https://www.tidymodels.org/start/</code></pre>
+## * Dig deeper into tidy modeling with R at https://www.tmwr.org</code></pre>
 <pre class="r"><code>library(tidyverse)</code></pre>
 <pre><code>## -- Attaching packages --------------------------------------- tidyverse 1.3.1 --</code></pre>
 <pre><code>## v readr   2.1.2     v forcats 0.5.1
@@ -209,7 +209,21 @@ pre code {
 ## 
 ##     %@%, as_function, flatten, flatten_chr, flatten_dbl, flatten_int,
 ##     flatten_lgl, flatten_raw, invoke, splice</code></pre>
-<pre class="r"><code>library(knitr)</code></pre>
+<pre class="r"><code>library(knitr)
+library(discrim)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;discrim&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:dials&#39;:
+## 
+##     smoothness</code></pre>
+<pre class="r"><code>library(klaR)</code></pre>
+<pre><code>## Loading required package: MASS</code></pre>
+<pre><code>## 
+## Attaching package: &#39;MASS&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:dplyr&#39;:
+## 
+##     select</code></pre>
+<pre class="r"><code>tidymodels_prefer()</code></pre>
 <pre class="r"><code>titanic &lt;- read_csv(&quot;titanic.csv&quot;)</code></pre>
 <pre><code>## Rows: 891 Columns: 12
 ## -- Column specification --------------------------------------------------------
@@ -219,17 +233,193 @@ pre code {
 ## 
 ## i Use `spec()` to retrieve the full column specification for this data.
 ## i Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
-<pre class="r"><code>head(titanic)</code></pre>
-<pre><code>## # A tibble: 6 x 12
-##   passenger_id survived pclass name  sex     age sib_sp parch ticket  fare cabin
-##          &lt;dbl&gt; &lt;chr&gt;     &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt;  &lt;dbl&gt; &lt;chr&gt;
-## 1            1 No            3 Brau~ male     22      1     0 A/5 2~  7.25 &lt;NA&gt; 
-## 2            2 Yes           1 Cumi~ fema~    38      1     0 PC 17~ 71.3  C85  
-## 3            3 Yes           3 Heik~ fema~    26      0     0 STON/~  7.92 &lt;NA&gt; 
-## 4            4 Yes           1 Futr~ fema~    35      1     0 113803 53.1  C123 
-## 5            5 No            3 Alle~ male     35      0     0 373450  8.05 &lt;NA&gt; 
-## 6            6 No            3 Mora~ male     NA      0     0 330877  8.46 &lt;NA&gt; 
-## # ... with 1 more variable: embarked &lt;chr&gt;</code></pre>
+<pre class="r"><code>titanic$survived &lt;- factor(titanic$survived, levels = c(&#39;Yes&#39;, &#39;No&#39;))
+titanic$pclass &lt;- factor(titanic$pclass)
+
+levels(titanic$survived)</code></pre>
+<pre><code>## [1] &quot;Yes&quot; &quot;No&quot;</code></pre>
+<div id="question-1" class="section level1">
+<h1>Question 1</h1>
+<pre class="r"><code>set.seed(1014)
+
+titanic_split &lt;- initial_split(titanic, prop = 0.80,
+                               strata = survived)
+titanic_train &lt;- training(titanic_split)
+titanic_test &lt;- testing(titanic_split)
+dim(titanic_test)</code></pre>
+<pre><code>## [1] 179  12</code></pre>
+<pre class="r"><code>dim(titanic_train)</code></pre>
+<pre><code>## [1] 712  12</code></pre>
+<pre class="r"><code>titanic_recipe &lt;- recipe(survived ~ pclass + sex + age + sib_sp + parch + fare,
+                         data = titanic_train) %&gt;%
+  step_impute_linear(age) %&gt;%
+  step_dummy(all_nominal_predictors()) %&gt;%
+  step_interact(terms = ~ starts_with(&quot;sex&quot;):fare + age:fare)</code></pre>
+<ol style="list-style-type: decimal">
+<li>Number of observations? train data: 712, test data: 179</li>
+</ol>
+</div>
+<div id="question-2" class="section level1">
+<h1>Question 2</h1>
+<pre class="r"><code>titanic_folds &lt;- vfold_cv(titanic_train, v = 10)
+titanic_folds</code></pre>
+<pre><code>## #  10-fold cross-validation 
+## # A tibble: 10 x 2
+##    splits           id    
+##    &lt;list&gt;           &lt;chr&gt; 
+##  1 &lt;split [640/72]&gt; Fold01
+##  2 &lt;split [640/72]&gt; Fold02
+##  3 &lt;split [641/71]&gt; Fold03
+##  4 &lt;split [641/71]&gt; Fold04
+##  5 &lt;split [641/71]&gt; Fold05
+##  6 &lt;split [641/71]&gt; Fold06
+##  7 &lt;split [641/71]&gt; Fold07
+##  8 &lt;split [641/71]&gt; Fold08
+##  9 &lt;split [641/71]&gt; Fold09
+## 10 &lt;split [641/71]&gt; Fold10</code></pre>
+</div>
+<div id="question-3" class="section level1">
+<h1>Question 3</h1>
+<ul>
+<li>What is k-fold cross-validation?</li>
+<li>Why we use it?</li>
+<li>If we used the entire training set, what resampling method would that be?</li>
+</ul>
+<p>k-fold cross-validation is a resampling method used to evaluate on a limited data sample. In k-fold cross-validation we split dataset into a K number of folds where each fold is used as a testing set. Using k-fold cross-validation is useful when there is limited observations in a dataset. The aim is to find a best parameter that reduces prediction error.</p>
+</div>
+<div id="question-4" class="section level1">
+<h1>Question 4</h1>
+<p>Set up workflows for 3 models:</p>
+<ul>
+<li>A logistic regression with the glm engine</li>
+<li>A LDA with the MASS engine</li>
+<li>A QDA with the MASS engine</li>
+</ul>
+<pre class="r"><code>#Recipe
+titanic_recipe = recipe(survived ~ pclass + sex + age + sib_sp + parch + fare, 
+                        data = titanic_train) %&gt;%
+        step_impute_linear(age) %&gt;%
+        step_dummy(all_nominal_predictors()) %&gt;%
+        step_interact(terms = ~ starts_with(&quot;sex&quot;):fare + age:fare)
+
+#Logistic
+log_reg = logistic_reg() %&gt;% 
+        set_engine(&quot;glm&quot;) %&gt;% 
+        set_mode(&quot;classification&quot;)
+
+log_wkflow = workflow() %&gt;% 
+        add_model(log_reg) %&gt;% 
+        add_recipe(titanic_recipe)
+
+log_fit = fit(log_wkflow, titanic_train)
+
+#LDA
+lda_mod = discrim_linear() %&gt;%
+        set_mode(&quot;classification&quot;) %&gt;%
+        set_engine(&quot;MASS&quot;)
+
+lda_wkflow = workflow() %&gt;% 
+        add_model(lda_mod) %&gt;% 
+        add_recipe(titanic_recipe)
+
+lda_fit = fit(lda_wkflow, titanic_train)
+
+
+#QDA
+qda_mod = discrim_quad() %&gt;% 
+        set_mode(&quot;classification&quot;) %&gt;% 
+        set_engine(&quot;MASS&quot;)
+
+qda_wkflow = workflow() %&gt;% 
+        add_model(qda_mod) %&gt;% 
+        add_recipe(titanic_recipe)
+
+qda_fit = fit(qda_wkflow, titanic_train)</code></pre>
+<p>10 folds for each 3 models add up to 30 folds total.</p>
+</div>
+<div id="question-5" class="section level1">
+<h1>Question 5</h1>
+<pre class="r"><code>log_res = log_wkflow %&gt;% 
+        fit_resamples(resamples = titanic_folds, 
+                      metrics = metric_set(recall, precision, 
+                                           accuracy, sens, spec, roc_auc),
+                      control = control_resamples(save_pred = TRUE)) 
+
+lda_res = lda_wkflow %&gt;%
+        fit_resamples(resamples = titanic_folds,
+                      metrics = metric_set(recall, precision, 
+                                           accuracy, sens, spec, roc_auc),
+                      control = control_resamples(save_pred = TRUE))
+
+qda_res = qda_wkflow %&gt;%
+        fit_resamples(resamples = titanic_folds,
+                      metrics = metric_set(recall, precision, 
+                                           accuracy, sens, spec, roc_auc),
+                      control = control_resamples(save_pred = TRUE))</code></pre>
+<div id="question-6" class="section level2">
+<h2>Question 6</h2>
+<pre class="r"><code># collect_metrics(log_res)
+# collect_metrics(lda_res)
+# collect_metrics(qda_res)</code></pre>
+<p>The logistic model had the best performance. The mean accuracy is at 0.81 and std_err is at 0.01. Assuming from the low standard error and it’s mean, the accuracy of folds is all near the mean, 0.81.</p>
+</div>
+<div id="question-7" class="section level2">
+<h2>Question 7</h2>
+<pre class="r"><code>log_fit = fit(log_wkflow, titanic_train)</code></pre>
+</div>
+<div id="question-8" class="section level2">
+<h2>Question 8</h2>
+<pre class="r"><code># predict(log_fit, new_data = titanic_test, type = &quot;prob&quot;)
+# 
+# log_acc = augment(log_fit, new_data = titanic_test) %&gt;%
+#   accuracy(truth = survived, estimate = .pred_class)
+# 
+# log_acc
+
+bound_train_data = bind_cols(predict(log_fit, new_data = titanic_train, type = &quot;class&quot;),
+                             predict(lda_fit, new_data = titanic_train, type = &quot;class&quot;),
+                             predict(qda_fit, new_data = titanic_train, type = &quot;class&quot;))</code></pre>
+<pre><code>## New names:
+## * `.pred_class` -&gt; `.pred_class...1`
+## * `.pred_class` -&gt; `.pred_class...2`
+## * `.pred_class` -&gt; `.pred_class...3`</code></pre>
+<pre class="r"><code>colnames(bound_train_data) = c(&quot;Log fit&quot;, &quot;LDA fit&quot;, &quot;QDA fit&quot;, &quot;True&quot;)
+
+log_reg_acc &lt;- augment(log_fit, new_data = titanic_train) %&gt;%
+  accuracy(truth = survived, estimate = .pred_class)
+
+
+lda_acc &lt;- augment(lda_fit, new_data = titanic_train) %&gt;%
+  accuracy(truth = survived, estimate = .pred_class)
+
+
+qda_acc &lt;- augment(qda_fit, new_data = titanic_train) %&gt;%
+  accuracy(truth = survived, estimate = .pred_class)
+
+log_reg_acc</code></pre>
+<pre><code>## # A tibble: 1 x 3
+##   .metric  .estimator .estimate
+##   &lt;chr&gt;    &lt;chr&gt;          &lt;dbl&gt;
+## 1 accuracy binary         0.819</code></pre>
+<pre class="r"><code>lda_acc</code></pre>
+<pre><code>## # A tibble: 1 x 3
+##   .metric  .estimator .estimate
+##   &lt;chr&gt;    &lt;chr&gt;          &lt;dbl&gt;
+## 1 accuracy binary         0.808</code></pre>
+<pre class="r"><code>qda_acc</code></pre>
+<pre><code>## # A tibble: 1 x 3
+##   .metric  .estimator .estimate
+##   &lt;chr&gt;    &lt;chr&gt;          &lt;dbl&gt;
+## 1 accuracy binary         0.795</code></pre>
+</div>
+<div id="question-9" class="section level2">
+<h2>Question 9</h2>
+<p><span class="math inline">\(Q = \sum_{i=1}^n (y_i-\hat{y_i})^2\)</span> <span class="math inline">\(\\\)</span> <span class="math inline">\(\hat{y_i}=\beta\)</span> <span class="math inline">\(\\\)</span> <span class="math inline">\(Q = \sum_{i=1}^n (y_i-\beta)^2\)</span> <span class="math inline">\(\leftrightarrow \frac{d Q}{d \beta} = -2\sum_{i=1}^n (y_i-\beta) = 0\)</span> <span class="math inline">\(\leftrightarrow \sum_{i=1}^n y_i - n\beta = 0\)</span> <span class="math inline">\(\leftrightarrow n\beta = \sum_{i=1}^n y_i\)</span> <span class="math inline">\(\leftrightarrow \hat{\beta} = \frac{\sum_{i=1}^n y_i}{n} = \bar{y}\)</span></p>
+</div>
+<div id="question-10" class="section level2">
+<h2>Question 10</h2>
+</div>
+</div>
 
 
 
